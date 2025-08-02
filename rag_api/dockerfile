@@ -1,0 +1,29 @@
+# Use a smaller, slim Python base image
+# This image is based on Debian and includes only the necessary Python runtime.
+FROM python:3.9-slim-buster
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy only the requirements file first. This allows Docker to cache this layer.
+# If requirements.txt doesn't change, this layer won't be rebuilt.
+COPY requirements.txt .
+
+# Install Python dependencies.
+# --no-cache-dir ensures pip doesn't store downloaded packages, saving space.
+# We explicitly install 'torch' and 'faiss-cpu' here, but pip install -r requirements.txt will handle it.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the rest of your application code into the container
+COPY . .
+
+# Expose the port your FastAPI app will listen on.
+# Render/Railway will map this internal port to a public one.
+EXPOSE 8000
+
+# Command to run the application using Uvicorn.
+# --host 0.0.0.0 makes the app accessible from outside the container.
+# --port $PORT: Use the PORT environment variable provided by the hosting platform (e.g., Render, Railway).
+# If the platform doesn't provide $PORT, you can use a fixed port like 8000.
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
